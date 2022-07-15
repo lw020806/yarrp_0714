@@ -330,11 +330,13 @@ Traceroute4::probeICMPRound(struct sockaddr_in *target, int ttl, uint32_t round)
     if (crafted_cksum == 0x0000)
         crafted_cksum = 0xFFFF;
     icmp->icmp_cksum = crafted_cksum;
-    clog << "ip: " << inet_ntoa(target->sin_addr) << " ttl: " << ttl << " to " << icmp->icmp_cksum << endl;
 
     if (sendto(sndsock, (char *)outip, packlen, 0, (struct sockaddr *)target, sizeof(*target)) < 0) {
         cout << __func__ << "(): error: " << strerror(errno) << endl;
         cout << ">> ICMP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
         cout << ttl << " t=" << diff << endl;
+    } else {
+        cout << ">> ICMP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
+        cout << ttl << " cksum=" << crafted_cksum << endl;
     }
 }
