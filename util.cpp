@@ -110,7 +110,7 @@ double poisson_pmf(const double k, const double lambda) {
 
 /* integral log_2 */
 uint32_t intlog(uint32_t in) {
-  uint32_t l = 0;
+  uint32_t l = 1;
   while (in >>= 1) { ++l; }
   return l;
 }
