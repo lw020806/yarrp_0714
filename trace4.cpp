@@ -321,8 +321,8 @@ Traceroute4::probeICMPRound(struct sockaddr_in *target, int ttl, uint32_t round)
     icmp->icmp_cksum = in_cksum((u_short *) icmp, len);
 
     /* encode LB identifiers into checksum */
-    uint16_t crafted_cksum = 0xFFF1;        // fixed LB identifiers
-    // uint16_t crafted_cksum = 0xFF00 + static_cast<uint16_t>(round);        // ranging LB identifiers
+    // uint16_t crafted_cksum = 0xFFF1;        // fixed LB identifiers
+    uint16_t crafted_cksum = 0xFF00 + static_cast<uint16_t>(round % 3);        // ranging LB identifiers
 
     /* craft payload such that the new cksum is correct */
     uint16_t crafted_data = compute_data(icmp->icmp_cksum, crafted_cksum);
@@ -335,8 +335,5 @@ Traceroute4::probeICMPRound(struct sockaddr_in *target, int ttl, uint32_t round)
         cout << __func__ << "(): error: " << strerror(errno) << endl;
         cout << ">> ICMP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
         cout << ttl << " t=" << diff << endl;
-    } else {
-        cout << ">> ICMP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
-        cout << ttl << " cksum=" << crafted_cksum << endl;
     }
 }
