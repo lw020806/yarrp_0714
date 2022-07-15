@@ -25,6 +25,7 @@ loop(YarrpConfig * config, TYPE * iplist, Traceroute * trace,
     char ptarg[INET6_ADDRSTRLEN];
     double prob, flip;
     int *asn;
+    uint32_t round;
 
     //adaptive timing to hit target rate
     uint64_t count = 0;
@@ -61,7 +62,7 @@ loop(YarrpConfig * config, TYPE * iplist, Traceroute * trace,
             if ((iplist->next_address(&target6, &ttl)) == 0)
                 break;
         } else {
-            if ((iplist->next_address(&target, &ttl)) == 0)
+            if ( (round = (iplist->next_address(&target, &ttl))) == 0)
                 break;
         }
         /* TTL control enforcement */
@@ -122,7 +123,7 @@ loop(YarrpConfig * config, TYPE * iplist, Traceroute * trace,
             if (config->ipv6)
                 trace->probe(target6, ttl);
             else
-                trace->probe(target.s_addr, ttl);
+                (dynamic_cast<Traceroute4*>(trace))->probeRound(target.s_addr, ttl, round);
         } else if (verbosity > HIGH) {
             if (config->ipv6)
                 trace->probePrint(target6, ttl);

@@ -250,3 +250,91 @@ Traceroute4::probeICMP(struct sockaddr_in *target, int ttl) {
         cout << ttl << " t=" << diff << endl;
     }
 }
+
+void
+Traceroute4::probeRound(uint32_t addr, int ttl, uint32_t round) {
+    struct sockaddr_in target;
+    memset(&target, 0, sizeof(target));
+    target.sin_family = AF_INET;
+#ifdef _BSD
+    target.sin_len = sizeof(target);
+#endif
+    target.sin_addr.s_addr = addr;
+    probeRound(&target, ttl, round);
+}
+
+void
+Traceroute4::probeRound(struct sockaddr_in *target, int ttl, uint32_t round) {
+    outip->ip_ttl = ttl;
+    outip->ip_id = htons(ttl + (config->instance << 8));
+    outip->ip_off = 0; // htons(IP_DF);
+    outip->ip_dst.s_addr = (target->sin_addr).s_addr;
+    outip->ip_sum = 0;
+    if (TR_UDP == config->type) {
+        probeUDP(target, ttl);
+    } else if ( (TR_ICMP == config->type) || (TR_ICMP_REPLY == config->type) ) {
+        probeICMPRound(target, ttl, round);
+    } else if ( (TR_TCP_SYN == config->type) || (TR_TCP_ACK == config->type) ) {
+        probeTCP(target, ttl);
+    } else {
+        cerr << "** bad trace type:" << config->type << endl;
+        assert(false);
+    }
+}
+
+
+void
+Traceroute4::probeICMPRound(struct sockaddr_in *target, int ttl, uint32_t round) {
+    unsigned char *ptr = (unsigned char *)outip;
+    struct icmp *icmp = (struct icmp *)(ptr + (outip->ip_hl << 2));
+    unsigned char *data = (unsigned char *)(ptr + (outip->ip_hl << 2) + ICMP_MINLEN);
+
+    payloadlen = 2;
+    packlen = sizeof(struct ip) + ICMP_MINLEN + payloadlen;
+    outip->ip_p = IPPROTO_ICMP;
+    outip->ip_len = htons(packlen);
+#if defined(_BSD) && !defined(_NEW_FBSD)
+    outip->ip_len = packlen;
+    outip->ip_off = 0; //IP_DF;
+#else
+    outip->ip_len = htons(packlen);
+#endif
+    /* encode send time into icmp id as elapsed milli/micro seconds */
+    uint32_t diff = elapsed();
+    if (verbosity > HIGH) {
+        cout << ">> ICMP probe: ";
+        probePrint(&target->sin_addr, ttl);
+    }
+    icmp->icmp_type = ICMP_ECHO;
+    if (TR_ICMP_REPLY == config->type)
+        icmp->icmp_type = ICMP_ECHOREPLY;
+    icmp->icmp_code = 0;
+    icmp->icmp_cksum = 0;
+    icmp->icmp_id = htons(diff & 0xFFFF);
+    /* encode round info into icmp sequence number */
+    icmp->icmp_seq = htons(static_cast<uint16_t>(round));
+    outip->ip_sum = htons(in_cksum((unsigned short *)outip, 20));
+
+    /* compute ICMP checksum */
+    memset(data, 0, 2);
+    u_short len = ICMP_MINLEN + payloadlen;
+    icmp->icmp_cksum = in_cksum((u_short *) icmp, len);
+
+    /* encode LB identifiers into checksum */
+    uint16_t crafted_cksum = 0xFFF1;        // fixed LB identifiers
+    // uint16_t crafted_cksum = 0xFF00 + static_cast<uint16_t>(round);        // ranging LB identifiers
+
+    /* craft payload such that the new cksum is correct */
+    uint16_t crafted_data = compute_data(icmp->icmp_cksum, crafted_cksum);
+    memcpy(data, &crafted_data, 2);
+    if (crafted_cksum == 0x0000)
+        crafted_cksum = 0xFFFF;
+    icmp->icmp_cksum = crafted_cksum;
+    clog << "ip: " << inet_ntoa(target->sin_addr) << " ttl: " << ttl << " to " << icmp->icmp_cksum << endl;
+
+    if (sendto(sndsock, (char *)outip, packlen, 0, (struct sockaddr *)target, sizeof(*target)) < 0) {
+        cout << __func__ << "(): error: " << strerror(errno) << endl;
+        cout << ">> ICMP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
+        cout << ttl << " t=" << diff << endl;
+    }
+}

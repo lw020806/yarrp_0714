@@ -45,6 +45,9 @@ class ICMP {
     struct timeval tv;
     bool coarse;
     mpls_label_t *mpls_stack;
+
+    uint16_t round{0};
+    uint32_t lb_id{0};
 };
 
 class ICMP4 : public ICMP {

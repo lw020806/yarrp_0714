@@ -83,17 +83,33 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
         else if (quote->ip_p == IPPROTO_ICMP) {
             struct icmp *icmp = (struct icmp *) (ptr + 8 + (quote->ip_hl << 2));
             uint32_t timestamp = ntohs(icmp->icmp_id);
+            rtt = elapsed - timestamp;
+            while (rtt <= 0)
+                rtt += 1<<16;
+
+            round = ntohs(icmp->icmp_seq);
+            sport = 0xFFFF;
+            lb_id = icmp->icmp_cksum;
+            // clog << "cksum received from ip: " << inet_ntoa(ip->ip_dst) << " to " << icmp->icmp_cksum << endl;
+        }
+        /*
+        else if (quote->ip_p == IPPROTO_ICMP) {
+            struct icmp *icmp = (struct icmp *) (ptr + 8 + (quote->ip_hl << 2));
+            uint32_t timestamp = ntohs(icmp->icmp_id);
             timestamp += ntohs(icmp->icmp_seq) << 16;
             rtt = elapsed - timestamp;
             sport = icmp->icmp_cksum;
         }
+        */
 
         /* According to Malone PAM 2007, 2% of replies have bad IP dst. */
+        /*
         uint16_t sum = in_cksum((unsigned short *)&(quote->ip_dst), 4);
         if (sport != sum) {
             cerr << "** IP dst in ICMP reply quote invalid!" << endl;
             sport = dport = 0;
         }
+        */
 
         /* Finally, does this ICMP packet have an extension (RFC4884)? */
         length = (ntohl(icmp->icmp_void) & 0x00FF0000) >> 16;
@@ -331,6 +347,8 @@ void ICMP::write(FILE ** out, uint32_t count, char *src, char *target) {
         return;
     fprintf(*out, "%s %lu %ld %d %d ",
         target, tv.tv_sec, (long) tv.tv_usec, type, code);
+    fprintf(*out, "%u %u ", 
+        round, lb_id);
     fprintf(*out, "%d %s %d %u ",
         ttl, src, rtt, ipid);
     fprintf(*out, "%d %d %d %d ",

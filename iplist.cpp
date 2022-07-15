@@ -130,6 +130,32 @@ uint32_t IPList4::next_address_seq(struct in_addr *in, uint8_t * ttl) {
 uint32_t IPList4::next_address_rand(struct in_addr *in, uint8_t * ttl) {
   static uint64_t next = 0;
   static uint32_t next32 = 0;
+  static uint32_t round = 3;             // TOCHANGE: round info
+
+  if (not seeded)
+    seed();
+
+  while (PERM_END == cperm_next(perm, &next)) {
+    round --;
+    if (round == 0) 
+      return 0;
+    else 
+      next = 0;
+      next32 = 0;
+      cperm_reset(perm);
+  }
+  next32 = next % 0xffffffff;
+  in->s_addr = targets[next32 >> ttlbits];
+  if (ttlbits == 0)
+    *ttl = 0;
+  else
+    *ttl = (next32 & ttlmask);
+  return round;
+}
+/*
+uint32_t IPList4::next_address_rand(struct in_addr *in, uint8_t * ttl) {
+  static uint64_t next = 0;
+  static uint32_t next32 = 0;
 
   if (not seeded)
     seed();
@@ -144,6 +170,7 @@ uint32_t IPList4::next_address_rand(struct in_addr *in, uint8_t * ttl) {
     *ttl = (next32 & ttlmask);
   return 1;
 }
+*/
 
 /* Internet-wide scanning mode */
 uint32_t IPList4::next_address_entire(struct in_addr *in, uint8_t * ttl) {
