@@ -89,7 +89,7 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
 
             round = ntohs(icmp->icmp_seq);
             sport = 0xFFFF;
-            lb_id = icmp->icmp_cksum;
+            lb_id = icmp->icmp_cksum & 0xFF;
             // clog << "cksum received from ip: " << inet_ntoa(ip->ip_dst) << " to " << icmp->icmp_cksum << endl;
         }
         /*
