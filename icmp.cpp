@@ -63,8 +63,11 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             int timestamp = udp->uh_sum;
             sport = ntohs(udp->uh_sport);
             dport = ntohs(udp->uh_dport);
-            if (payloadlen > 2)
-                timestamp += (payloadlen-2) << 16;
+            round = sport - in_cksum((unsigned short *)&(quote->ip_dst), 4);
+            lb_id = dport - 33434;
+
+            // if (payloadlen > 2)
+            //     timestamp += (payloadlen-2) << 16;
             if (elapsed >= timestamp) {
                 rtt = elapsed - timestamp;
             /* checksum was 0x0000 and because of RFC, 0xFFFF was transmitted
@@ -77,6 +80,8 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
                 cerr << "** RTT decode, elapsed: " << elapsed << " encoded: " << timestamp << endl;
                 sport = dport = 0;
             }
+            while(rtt > 1<<16)
+                rtt -= 1<<16;
         } 
 
         /* Original probe was ICMP */
@@ -84,8 +89,8 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             struct icmp *icmp = (struct icmp *) (ptr + 8 + (quote->ip_hl << 2));
             uint32_t timestamp = ntohs(icmp->icmp_id);
             rtt = elapsed - timestamp;
-            while (rtt <= 0)
-                rtt += 1<<16;
+            while (rtt > 1<<16)
+                rtt -= 1<<16;
 
             round = ntohs(icmp->icmp_seq);
             sport = 0xFFFF;

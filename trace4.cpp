@@ -155,9 +155,6 @@ Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) 
 
     uint32_t diff = elapsed();
     payloadlen = 2;
-    /* encode MSB of timestamp in UDP payload length */ 
-    if (diff >> 16)
-        payloadlen += (diff>>16);         // BAD IDEA
     if (verbosity > HIGH) {
         cout << ">> UDP probe: ";
         probePrint(&target->sin_addr, ttl);
@@ -175,8 +172,8 @@ Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) 
 #endif
     /* encode destination IPv4 address as cksum(ipdst) */
     uint16_t dport = in_cksum((unsigned short *)&(outip->ip_dst), 4);
-    udp->uh_sport = htons(dport);       // LBID
-    udp->uh_dport = htons(dstport);     // LBID
+    udp->uh_sport = htons(dport + round);     // round
+    udp->uh_dport = htons(33434 + round%2);     // LBID
     udp->uh_ulen = htons(sizeof(struct udphdr) + payloadlen);
     udp->uh_sum = 0;
 

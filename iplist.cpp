@@ -130,7 +130,7 @@ uint32_t IPList4::next_address_seq(struct in_addr *in, uint8_t * ttl) {
 uint32_t IPList4::next_address_rand(struct in_addr *in, uint8_t * ttl) {
   static uint64_t next = 0;
   static uint32_t next32 = 0;
-  static uint32_t round = 30;             // TOCHANGE: round info
+  static uint32_t round = 15;             // TOCHANGE: round info
 
   if (not seeded)
     seed();
