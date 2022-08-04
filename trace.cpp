@@ -58,7 +58,7 @@ uint32_t
 Traceroute::elapsed() {
     gettimeofday(&now, NULL);
     if (config->coarse)
-        return tsdiff(&now, &start);
+        return tsdiff100us(&now, &start);
     return tsdiffus(&now, &start); 
 }
 

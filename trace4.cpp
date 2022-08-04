@@ -148,6 +148,62 @@ Traceroute4::probeUDP(struct sockaddr_in *target, int ttl) {
 }
 
 void
+Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) {
+    unsigned char *ptr = (unsigned char *)outip;
+    struct udphdr *udp = (struct udphdr *)(ptr + (outip->ip_hl << 2));
+    unsigned char *data = (unsigned char *)(ptr + (outip->ip_hl << 2) + sizeof(struct udphdr));
+
+    uint32_t diff = elapsed();
+    payloadlen = 2;
+    /* encode MSB of timestamp in UDP payload length */ 
+    if (diff >> 16)
+        payloadlen += (diff>>16);         // BAD IDEA
+    if (verbosity > HIGH) {
+        cout << ">> UDP probe: ";
+        probePrint(&target->sin_addr, ttl);
+    }
+
+    packlen = sizeof(struct ip) + sizeof(struct udphdr) + payloadlen;
+
+    outip->ip_p = IPPROTO_UDP;
+#if defined(_BSD) && !defined(_NEW_FBSD)
+    outip->ip_len = packlen;
+    outip->ip_off = IP_DF;
+#else
+    outip->ip_len = htons(packlen);
+    outip->ip_off = ntohs(IP_DF);
+#endif
+    /* encode destination IPv4 address as cksum(ipdst) */
+    uint16_t dport = in_cksum((unsigned short *)&(outip->ip_dst), 4);
+    udp->uh_sport = htons(dport);       // LBID
+    udp->uh_dport = htons(dstport);     // LBID
+    udp->uh_ulen = htons(sizeof(struct udphdr) + payloadlen);
+    udp->uh_sum = 0;
+
+    outip->ip_sum = htons(in_cksum((unsigned short *)outip, 20));
+
+    /* compute UDP checksum */
+    memset(data, 0, 2);
+    u_short len = sizeof(struct udphdr) + payloadlen;
+    udp->uh_sum = p_cksum(outip, (u_short *) udp, len);
+
+    /* encode LSB of timestamp in checksum */
+    uint16_t crafted_cksum = diff & 0xFFFF;
+    /* craft payload such that the new cksum is correct */
+    uint16_t crafted_data = compute_data(udp->uh_sum, crafted_cksum);
+    memcpy(data, &crafted_data, 2);
+    if (crafted_cksum == 0x0000)
+        crafted_cksum = 0xFFFF;
+    udp->uh_sum = crafted_cksum;
+
+    if (sendto(sndsock, (char *)outip, packlen, 0, (struct sockaddr *)target, sizeof(*target)) < 0) {
+        cout << __func__ << "(): error: " << strerror(errno) << endl;
+        cout << ">> UDP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
+        cout << ttl << " t=" << diff << endl;
+    }
+}
+
+void
 Traceroute4::probeTCP(struct sockaddr_in *target, int ttl) {
     unsigned char *ptr = (unsigned char *)outip;
     struct tcphdr *tcp = (struct tcphdr *)(ptr + (outip->ip_hl << 2));
@@ -271,7 +327,7 @@ Traceroute4::probeRound(struct sockaddr_in *target, int ttl, uint32_t round) {
     outip->ip_dst.s_addr = (target->sin_addr).s_addr;
     outip->ip_sum = 0;
     if (TR_UDP == config->type) {
-        probeUDP(target, ttl);
+        probeUDPRound(target, ttl, round);
     } else if ( (TR_ICMP == config->type) || (TR_ICMP_REPLY == config->type) ) {
         probeICMPRound(target, ttl, round);
     } else if ( (TR_TCP_SYN == config->type) || (TR_TCP_ACK == config->type) ) {

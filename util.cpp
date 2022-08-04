@@ -28,6 +28,13 @@ tsdiffus(struct timeval *end, struct timeval *begin) {
     return diff;
 }
 
+uint32_t 
+tsdiff100us(struct timeval *end, struct timeval *begin) {
+    uint32_t diff = (end->tv_sec - begin->tv_sec) * 10000;
+    diff += (end->tv_usec - begin->tv_usec) / 100;
+    return diff;
+}
+
 double
 now(void) {
     struct timeval now;
