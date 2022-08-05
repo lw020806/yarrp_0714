@@ -42,8 +42,9 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
 #else
         probesize = ntohs(quote->ip_len);
 #endif
-        ttl = (ntohs(quote->ip_id)) & 0xFF;
-        instance = (ntohs(quote->ip_id) >> 8) & 0xFF;
+        ttl = (ntohs(quote->ip_id)) & 0x1F;
+        round = (ntohs(quote->ip_id) >> 5) & 0x1F;
+        instance = (ntohs(quote->ip_id) >> 10) & 0x3F;
 
         /* Original probe was TCP */
         if (quote->ip_p == IPPROTO_TCP) {
@@ -63,7 +64,6 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             int timestamp = udp->uh_sum;
             sport = ntohs(udp->uh_sport);
             dport = ntohs(udp->uh_dport);
-            round = sport - in_cksum((unsigned short *)&(quote->ip_dst), 4);
             lb_id = dport - 33434;
 
             // if (payloadlen > 2)

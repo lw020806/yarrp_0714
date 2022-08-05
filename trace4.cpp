@@ -172,7 +172,7 @@ Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) 
 #endif
     /* encode destination IPv4 address as cksum(ipdst) */
     uint16_t dport = in_cksum((unsigned short *)&(outip->ip_dst), 4);
-    udp->uh_sport = htons(dport + round);     // round
+    udp->uh_sport = htons(dport);     // round
     udp->uh_dport = htons(33434 + round%2);     // LBID
     udp->uh_ulen = htons(sizeof(struct udphdr) + payloadlen);
     udp->uh_sum = 0;
@@ -319,7 +319,9 @@ Traceroute4::probeRound(uint32_t addr, int ttl, uint32_t round) {
 void
 Traceroute4::probeRound(struct sockaddr_in *target, int ttl, uint32_t round) {
     outip->ip_ttl = ttl;
-    outip->ip_id = htons(ttl + (config->instance << 8));
+    // 6-bit instance + 5-bit round + 5-bit ttl
+    // round: (0, 32), 32 seconds in total ; ttl: (0, 32)
+    outip->ip_id = htons((ttl & 0x1F) + ((round & 0x1F) << 5) + ((config->instance & 0x3F) << 10));
     outip->ip_off = 0; // htons(IP_DF);
     outip->ip_dst.s_addr = (target->sin_addr).s_addr;
     outip->ip_sum = 0;
