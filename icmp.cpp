@@ -42,8 +42,8 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
 #else
         probesize = ntohs(quote->ip_len);
 #endif
-        ttl = (ntohs(quote->ip_id)) & 0xFF;
-        instance = (ntohs(quote->ip_id) >> 8) & 0xFF;
+        // ttl = (ntohs(quote->ip_id)) & 0xFF;
+        // instance = (ntohs(quote->ip_id) >> 8) & 0xFF;
         recv_id = icmp->icmp_id;
         recv_seq = icmp->icmp_seq;
         recv_cksum = icmp->icmp_cksum;
@@ -63,11 +63,13 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             struct udphdr *udp = (struct udphdr *) (ptr + 8 + (quote->ip_hl << 2));
             /* recover timestamp from UDP.check and UDP.payloadlen */
             int payloadlen = ntohs(udp->uh_ulen) - sizeof(struct udphdr);
-            int timestamp = udp->uh_sum;
+            int timestamp = ntohs(quote->ip_id);
             sport = ntohs(udp->uh_sport);
             dport = ntohs(udp->uh_dport);
             lb_id = dport - 33434;
             round = lb_id;
+            instance = (sport >> 8) & 0xFF;
+            ttl = (udp->uh_sum >> 8) & 0xFF;
 
             // if (payloadlen > 2)
             //     timestamp += (payloadlen-2) << 16;
