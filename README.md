@@ -35,3 +35,15 @@ make
 	| ttl | protcol | hdr cksum | hdr cksum |
 	| src IP | src IP | src IP | src IP |
 	| dst IP | dst IP | dst IP | dst IP |
+* UDP header (no payload)
+	| Byte1 | Byte2 | Byte3 | Byte4 |
+	| :---: | :---: | :---: | :---: |
+	| sport(**Makeup**) | sport(**Makeup**) | dport(**LBID**) | dport(**LBID**) |
+	| length | length | cksum(**timestamp**) | cksum(**timestamp**) |
+
+### Received ICMP packet
+* cksum field is fixed for each (dst, ttl) even with different LB identifiers
+* ICMP header
+	| Byte1 | Byte2 | Byte3 | Byte4 |
+	| :---: | :---: | :---: | :---: |
+	| Type(11) | Code(0) | Cksum | Cksum |
