@@ -69,18 +69,11 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             lb_id = dport - 33434;
             round = lb_id;
             instance = (sport >> 8) & 0xFF;
-            ttl = (udp->uh_sum >> 8) & 0xFF;
+            ttl = (~udp->uh_sum) + (~udp->uh_dport) + 1;
 
-            // if (payloadlen > 2)
-            //     timestamp += (payloadlen-2) << 16;
             if (elapsed >= timestamp) {
                 rtt = elapsed - timestamp;
-            /* checksum was 0x0000 and because of RFC, 0xFFFF was transmitted
-             * causing us to see packet as being 65 (2^{16}/1000) seconds in future */
-            } else if (udp->uh_sum == 0xffff) {
-                timestamp = (payloadlen-2) << 16;
-                rtt = elapsed - timestamp;
-            }
+            } 
             if (elapsed < timestamp) {
                 cerr << "** RTT decode, elapsed: " << elapsed << " encoded: " << timestamp << endl;
                 sport = dport = 0;

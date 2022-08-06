@@ -186,7 +186,7 @@ Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) 
     udp->uh_sum = p_cksum(outip, (u_short *) udp, len);
 
     /* encode LSB of timestamp in checksum */
-    uint16_t crafted_cksum = (ttl & 0xFF) << 8 + (~(udp->uh_dport & 0xFF));
+    uint16_t crafted_cksum = ~((udp->uh_dport) + ttl);
     /* craft payload such that the new cksum is correct */
     uint16_t crafted_data = compute_data(udp->uh_sum, crafted_cksum);
     memcpy(data, &crafted_data, 2);
@@ -199,6 +199,11 @@ Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) 
         cout << ">> UDP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
         cout << ttl << " t=" << diff << endl;
     }
+    //  else {
+        // cout << ">> src ip: " << inet_ntoa(target->sin_addr) << " ttl: ";
+        // cout << ttl << " ; " << static_cast<uint16_t>((~udp->uh_sum) + (~udp->uh_dport) + 1) << endl;
+        // cout << "lbid: " << ntohs(udp->uh_dport) - 33434 << "; pld: " << crafted_data << endl;
+    // }
 }
 
 void
