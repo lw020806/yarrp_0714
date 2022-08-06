@@ -23,15 +23,15 @@ make
 
 ## Customized packet structure
 ### Sent UDP packet
-	- Probed ttl info : second byte of ip identification field 
-	- LB identifier: udp dport
-	- Send timestamp: udp cksum
-	- Makeup bytes: udp sport
-	- IP header
-		| Byte1 | Byte2 | Byte3 | Byte4 |
-		| :---: | :---: | :---: | :---: |
-		| version + IHL | TOS | length | length |
-		| id(instance) | id(**ttl**) | ... | ... |
-		| ttl | protcol | hdr cksum | hdr cksum |
-		| src IP | src IP | src IP | src IP |
-		| dst IP | dst IP | dst IP | dst IP |
+* Probed ttl info : second byte of ip identification field 
+* LB identifier: udp dport
+* Send timestamp: udp cksum
+* Makeup bytes: udp sport
+* IP header
+	| Byte1 | Byte2 | Byte3 | Byte4 |
+	| :---: | :---: | :---: | :---: |
+	| version + IHL | TOS | length | length |
+	| id(instance) | id(**ttl**) | ... | ... |
+	| ttl | protcol | hdr cksum | hdr cksum |
+	| src IP | src IP | src IP | src IP |
+	| dst IP | dst IP | dst IP | dst IP |
