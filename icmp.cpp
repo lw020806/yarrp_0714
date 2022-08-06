@@ -42,9 +42,11 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
 #else
         probesize = ntohs(quote->ip_len);
 #endif
-        ttl = (ntohs(quote->ip_id)) & 0x1F;
-        round = (ntohs(quote->ip_id) >> 5) & 0x1F;
-        instance = (ntohs(quote->ip_id) >> 10) & 0x3F;
+        ttl = (ntohs(quote->ip_id)) & 0xFF;
+        instance = (ntohs(quote->ip_id) >> 8) & 0xFF;
+        recv_id = icmp->icmp_id;
+        recv_seq = icmp->icmp_seq;
+        recv_cksum = icmp->icmp_cksum;
 
         /* Original probe was TCP */
         if (quote->ip_p == IPPROTO_TCP) {
@@ -65,6 +67,7 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             sport = ntohs(udp->uh_sport);
             dport = ntohs(udp->uh_dport);
             lb_id = dport - 33434;
+            round = lb_id;
 
             // if (payloadlen > 2)
             //     timestamp += (payloadlen-2) << 16;
@@ -352,8 +355,8 @@ void ICMP::write(FILE ** out, uint32_t count, char *src, char *target) {
         return;
     fprintf(*out, "%s %lu %ld %d %d ",
         target, tv.tv_sec, (long) tv.tv_usec, type, code);
-    fprintf(*out, "%u %u ", 
-        round, lb_id);
+    fprintf(*out, "%u %u %u %u %u ", 
+        recv_id, recv_seq, recv_cksum, round, lb_id);
     fprintf(*out, "%d %s %d %u ",
         ttl, src, rtt, ipid);
     fprintf(*out, "%d %d %d %d ",

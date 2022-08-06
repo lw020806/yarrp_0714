@@ -35,7 +35,7 @@ make
 	| ttl | protcol | hdr cksum | hdr cksum |
 	| src IP | src IP | src IP | src IP |
 	| dst IP | dst IP | dst IP | dst IP |
-* UDP header (no payload)
+* UDP header (two-byte empty payload)
 	| Byte1 | Byte2 | Byte3 | Byte4 |
 	| :---: | :---: | :---: | :---: |
 	| sport(**Makeup**) | sport(**Makeup**) | dport(**LBID**) | dport(**LBID**) |

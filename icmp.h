@@ -48,6 +48,9 @@ class ICMP {
 
     uint16_t round{0};
     uint32_t lb_id{0};
+    uint16_t recv_id{0};
+    uint16_t recv_seq{0};
+    uint16_t recv_cksum{0};
 };
 
 class ICMP4 : public ICMP {
