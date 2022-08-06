@@ -173,7 +173,7 @@ Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) 
     /* encode destination IPv4 address as cksum(ipdst) */
     uint16_t dport = in_cksum((unsigned short *)&(outip->ip_dst), 4);
     udp->uh_sport = htons(config->instance << 8 + (dport & 0xFF));     // fixed bytes
-    udp->uh_dport = htons(33434 + round%2);     // LBID
+    udp->uh_dport = htons(33434 + round%3);     // LBID
     udp->uh_ulen = htons(sizeof(struct udphdr) + payloadlen);
     udp->uh_sum = 0;
 
