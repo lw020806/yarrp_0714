@@ -13,6 +13,146 @@ ICMP::ICMP() :
     mpls_stack = NULL;
 }
 
+// ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): ICMP()
+// {
+//     coarse = _coarse;
+//     memset(&ip_src, 0, sizeof(struct in_addr));
+//     type = (uint8_t) icmp->icmp_type;
+//     code = (uint8_t) icmp->icmp_code;
+
+//     ip_src = ip->ip_src;
+// #if defined(_BSD) && !defined(_NEW_FBSD)
+//     replysize = ip->ip_len;
+// #else
+//     replysize = ntohs(ip->ip_len);
+// #endif
+//     ipid = ntohs(ip->ip_id);
+//     replytos = ip->ip_tos;
+//     replyttl = ip->ip_ttl;
+//     unsigned char *ptr = NULL;
+
+//     quote = NULL;
+//     if (((type == ICMP_TIMXCEED) and (code == ICMP_TIMXCEED_INTRANS)) or
+//         (type == ICMP_UNREACH)) {
+//         ptr = (unsigned char *) icmp;
+//         quote = (struct ip *) (ptr + 8);
+//         quote_p = quote->ip_p;
+// #if defined(_BSD) && !defined(_NEW_FBSD)
+//         probesize = quote->ip_len;
+// #else
+//         probesize = ntohs(quote->ip_len);
+// #endif
+//         // ttl = (ntohs(quote->ip_id)) & 0xFF;
+//         // instance = (ntohs(quote->ip_id) >> 8) & 0xFF;
+//         recv_id = icmp->icmp_id;
+//         recv_seq = icmp->icmp_seq;
+//         recv_cksum = icmp->icmp_cksum;
+
+//         /* Original probe was TCP */
+//         if (quote->ip_p == IPPROTO_TCP) {
+//             struct tcphdr *tcp = (struct tcphdr *) (ptr + 8 + (quote->ip_hl << 2));
+//             rtt = elapsed - ntohl(tcp->th_seq);
+//             if (elapsed < ntohl(tcp->th_seq))
+//                 cerr << "** RTT decode, elapsed: " << elapsed << " encoded: " << ntohl(tcp->th_seq) << endl;
+//             sport = ntohs(tcp->th_sport);
+//             dport = ntohs(tcp->th_dport);
+//         }
+
+//         /* Original probe was UDP */
+//         else if (quote->ip_p == IPPROTO_UDP) {
+//             struct udphdr *udp = (struct udphdr *) (ptr + 8 + (quote->ip_hl << 2));
+//             /* recover timestamp from UDP.check and UDP.payloadlen */
+//             int payloadlen = ntohs(udp->uh_ulen) - sizeof(struct udphdr);
+//             int timestamp = ntohs(quote->ip_id);
+//             sport = ntohs(udp->uh_sport);
+//             dport = ntohs(udp->uh_dport);
+//             lb_id = dport - 33434;
+//             round = lb_id;
+//             instance = (sport >> 8) & 0xFF;
+//             ttl = (~udp->uh_sum) + (~udp->uh_dport) + 1;
+
+//             if (elapsed >= timestamp) {
+//                 rtt = elapsed - timestamp;
+//             } 
+//             if (elapsed < timestamp) {
+//                 cerr << "** RTT decode, elapsed: " << elapsed << " encoded: " << timestamp << endl;
+//                 sport = dport = 0;
+//             }
+//             while(rtt > 1<<16)
+//                 rtt -= 1<<16;
+//         } 
+
+//         /* Original probe was ICMP */
+//         else if (quote->ip_p == IPPROTO_ICMP) {
+//             struct icmp *icmp = (struct icmp *) (ptr + 8 + (quote->ip_hl << 2));
+//             uint32_t timestamp = ntohs(icmp->icmp_id);
+//             rtt = elapsed - timestamp;
+//             while (rtt > 1<<16)
+//                 rtt -= 1<<16;
+
+//             round = ntohs(icmp->icmp_seq);
+//             sport = 0xFFFF;
+//             lb_id = icmp->icmp_cksum & 0xFF;
+//             // clog << "cksum received from ip: " << inet_ntoa(ip->ip_dst) << " to " << icmp->icmp_cksum << endl;
+//         }
+//         /*
+//         else if (quote->ip_p == IPPROTO_ICMP) {
+//             struct icmp *icmp = (struct icmp *) (ptr + 8 + (quote->ip_hl << 2));
+//             uint32_t timestamp = ntohs(icmp->icmp_id);
+//             timestamp += ntohs(icmp->icmp_seq) << 16;
+//             rtt = elapsed - timestamp;
+//             sport = icmp->icmp_cksum;
+//         }
+//         */
+
+//         /* According to Malone PAM 2007, 2% of replies have bad IP dst. */
+//         /*
+//         uint16_t sum = in_cksum((unsigned short *)&(quote->ip_dst), 4);
+//         if (sport != sum) {
+//             cerr << "** IP dst in ICMP reply quote invalid!" << endl;
+//             sport = dport = 0;
+//         }
+//         */
+
+//         /* Finally, does this ICMP packet have an extension (RFC4884)? */
+//         length = (ntohl(icmp->icmp_void) & 0x00FF0000) >> 16;
+//         length *= 4;
+//         if ( (length > 0) and (replysize > length+8) ) {
+//             //printf("*** ICMP Extension %d/%d\n", length, replysize);
+//             ptr = (unsigned char *) icmp;
+//             ptr += length+8;
+//             if (length < 128) 
+//                 ptr += (128-length);
+//             // ptr at start of ICMP extension
+//             ptr += 4;
+//             // ptr at start of MPLS stack header
+//             ptr += 2;
+//             // is this a class/type 1/1 (MPLS)?
+//             if ( (*ptr == 0x01) and (*(ptr+1) == 0x01) ) {
+//                 ptr += 2;
+//                 uint32_t *tmp;
+//                 mpls_label_t *lse = (mpls_label_t *) calloc(1, sizeof(mpls_label_t) );
+//                 mpls_stack = lse;
+//                 for (int labels = 0; labels < MAX_MPLS_STACK_HEIGHT; labels++) {
+//                     tmp = (uint32_t *) ptr;
+//                     if (labels > 0) {
+//                         mpls_label_t *nextlse = (mpls_label_t *) calloc(1, sizeof(mpls_label_t) );
+//                         lse->next = nextlse;
+//                         lse = nextlse;
+//                     }
+//                     lse->label = (htonl(*tmp) & 0xFFFFF000) >> 12;
+//                     lse->exp   = (htonl(*tmp) & 0x00000F00) >> 8;
+//                     lse->ttl   = (htonl(*tmp) & 0x000000FF);
+//                     // bottom of stack?
+//                     if (lse->exp & 0x01) 
+//                         break;
+//                     ptr+=4;
+//                 }
+//             }
+//         }
+//     }
+// }
+
 ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): ICMP()
 {
     coarse = _coarse;
@@ -26,7 +166,7 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
 #else
     replysize = ntohs(ip->ip_len);
 #endif
-    ipid = ntohs(ip->ip_id);
+    ipid = ip->ip_id;
     replytos = ip->ip_tos;
     replyttl = ip->ip_ttl;
     unsigned char *ptr = NULL;
@@ -62,24 +202,13 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
         else if (quote->ip_p == IPPROTO_UDP) {
             struct udphdr *udp = (struct udphdr *) (ptr + 8 + (quote->ip_hl << 2));
             /* recover timestamp from UDP.check and UDP.payloadlen */
-            int payloadlen = ntohs(udp->uh_ulen) - sizeof(struct udphdr);
-            int timestamp = ntohs(quote->ip_id);
+            lb_id = ntohs(udp->uh_ulen) - sizeof(struct udphdr) - 2;
+            round = lb_id;
             sport = ntohs(udp->uh_sport);
             dport = ntohs(udp->uh_dport);
-            lb_id = dport - 33434;
-            round = lb_id;
-            instance = (sport >> 8) & 0xFF;
-            ttl = (~udp->uh_sum) + (~udp->uh_dport) + 1;
+            recv_cksum = udp->uh_sum;
 
-            if (elapsed >= timestamp) {
-                rtt = elapsed - timestamp;
-            } 
-            if (elapsed < timestamp) {
-                cerr << "** RTT decode, elapsed: " << elapsed << " encoded: " << timestamp << endl;
-                sport = dport = 0;
-            }
-            while(rtt > 1<<16)
-                rtt -= 1<<16;
+            rtt = 0;
         } 
 
         /* Original probe was ICMP */
@@ -350,8 +479,8 @@ void ICMP::write(FILE ** out, uint32_t count, char *src, char *target) {
         return;
     fprintf(*out, "%s %lu %ld %d %d ",
         target, tv.tv_sec, (long) tv.tv_usec, type, code);
-    fprintf(*out, "%u %u %u %u %u ", 
-        recv_id, recv_seq, recv_cksum, round, lb_id);
+    fprintf(*out, "%u %u %u %u %u %u %u %u", 
+        recv_id, recv_seq, recv_cksum, sport, dport, uh_cksum, round, lb_id);
     fprintf(*out, "%d %s %d %u ",
         ttl, src, rtt, ipid);
     fprintf(*out, "%d %d %d %d ",

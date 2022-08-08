@@ -47,3 +47,45 @@ make
 	| Byte1 | Byte2 | Byte3 | Byte4 |
 	| :---: | :---: | :---: | :---: |
 	| Type(11) | Code(0) | Cksum | Cksum |
+
+## Branch Purpose
+* Objective: filter out routers with bad behaviors who modify fields of original probed packets when responsing
+* Fields of interest:
+	1. IP header (original probed packet)
+		* Identifier (timestamp)
+	2. UDP header (original probed packet)
+		* sport (LBID)
+		* dport (LBID)
+		* cksum (ttl)
+	3. ICMP header (response packet)
+		* cksum (return LBID)
+		* id -> cksum
+		* seq -> cksum
+* Method:
+	1. IP header
+		| Byte1 | Byte2 | Byte3 | Byte4 |
+		| :---: | :---: | :---: | :---: |
+		| version + IHL | TOS | length | length |
+		| id(**instance**) | id(**instance**) | ... | ... |
+		| ttl | protcol | hdr cksum | hdr cksum |
+		| src IP | src IP | src IP | src IP |
+		| dst IP | dst IP | dst IP | dst IP |
+	2. UDP header (2-byte makeup payload)
+		| Byte1 | Byte2 | Byte3 | Byte4 |
+		| :---: | :---: | :---: | :---: |
+		| sport(**instance**) | sport(**instance**) | dport(**instance**) | dport(**LBID**) |
+		| length | length | cksum(**instance**) | cksum(**instance**) |
+	3. to observe
+		* ICMP:
+			* cksum(fixed for all dst, ttl, lbid)
+			* id (= 0)
+			* seq (= 0)
+		* inner IP:
+			* id (= instance + instance)
+		* inner UDP:
+			* sport (= 33434 + lbid)
+			* dport (= 33434 + lbid) (*lbid* as much as possible)
+			* len (= 2 + lbid)
+			* cksum (= ~(sport + dport + 0))
+	4. instance value(8bit): 201 or 0b11001001
+

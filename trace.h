@@ -66,6 +66,7 @@ class Traceroute4 : public Traceroute {
     void probeRound(struct sockaddr_in *, int, uint32_t);
     void probeICMPRound(struct sockaddr_in *, int, uint32_t);
     void probeUDPRound(struct sockaddr_in *, int, uint32_t);
+    void probeUDPFieldTest(struct sockaddr_in *, int, uint32_t);
 
     private:
     void probeUDP(struct sockaddr_in *, int);

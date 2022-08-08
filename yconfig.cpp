@@ -234,7 +234,7 @@ YarrpConfig::parse_opts(int argc, char **argv) {
     params["TTL_Nbrhd"] = val_t(to_string(ttl_neighborhood), true);
     params["Dst_Port"] = val_t(to_string(dstport), true);
     // params["Output_Fields"] = val_t("target sec usec type code ttl hop rtt ipid psize rsize rttl rtos mpls count", true);
-    params["Output_Fields"] = val_t("target sec usec type code recv_id recv_seq recv_cksum round lbid ttl hop rtt ipid psize rsize rttl rtos mpls count", true);
+    params["Output_Fields"] = val_t("target sec usec type code recv_id recv_seq recv_cksum uh_sport uh_dport uh_cksum round lbid ttl hop rtt ipid psize rsize rttl rtos mpls count", true);
 }
 
 

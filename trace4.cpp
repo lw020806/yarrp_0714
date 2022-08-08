@@ -147,6 +147,59 @@ Traceroute4::probeUDP(struct sockaddr_in *target, int ttl) {
     }
 }
 
+#define TESTCODE 201u
+
+void
+Traceroute4::probeUDPFieldTest(struct sockaddr_in *target, int ttl, uint32_t round) {
+    unsigned char *ptr = (unsigned char *)outip;
+    struct udphdr *udp = (struct udphdr *)(ptr + (outip->ip_hl << 2));
+    unsigned char *data = (unsigned char *)(ptr + (outip->ip_hl << 2) + sizeof(struct udphdr));
+
+    unsigned int lbid = round%10;
+    payloadlen = 2 + lbid;
+    packlen = sizeof(struct ip) + sizeof(struct udphdr) + payloadlen;
+
+    outip->ip_p = IPPROTO_UDP;
+    outip->ip_id = ((TESTCODE & 0xFF) << 8) + TESTCODE;
+#if defined(_BSD) && !defined(_NEW_FBSD)
+    outip->ip_len = packlen;
+    outip->ip_off = IP_DF;
+#else
+    outip->ip_len = htons(packlen);
+    outip->ip_off = ntohs(IP_DF);
+#endif
+    outip->ip_sum = htons(in_cksum((unsigned short *)outip, 20));
+
+    /* encode destination IPv4 address as cksum(ipdst) */
+    udp->uh_sport = htons(33434 + lbid);     // fixed bytes
+    udp->uh_dport = htons(33434 + lbid);     // LBID
+    udp->uh_ulen = htons(sizeof(struct udphdr) + payloadlen);
+    udp->uh_sum = 0;
+
+
+    /* compute UDP checksum */
+    memset(data, 0, payloadlen);
+    u_short len = sizeof(struct udphdr) + payloadlen;
+    udp->uh_sum = p_cksum(outip, (u_short *) udp, len);
+
+    uint16_t crafted_cksum = ((TESTCODE & 0xFF) << 8) + TESTCODE;
+    /* craft payload such that the new cksum is correct */
+    uint16_t crafted_data = compute_data(udp->uh_sum, crafted_cksum);
+    memcpy(data, &crafted_data, 2);
+    if (crafted_cksum == 0x0000)
+        crafted_cksum = 0xFFFF;
+    udp->uh_sum = crafted_cksum;
+
+    if (sendto(sndsock, (char *)outip, packlen, 0, (struct sockaddr *)target, sizeof(*target)) < 0) {
+        cout << __func__ << "(): error: " << strerror(errno) << endl;
+        cout << ">> UDP probe: " << inet_ntoa(target->sin_addr) << " ttl: ";
+        cout << ttl << endl;
+    } 
+    // else {
+        // printf("ip_id:%u ; ip_sum:%u ; uh_sport:%u ; uh_dport:%u ; uh_ulen:%u ; uh_cksum:%u ;\n", outip->ip_id, outip->ip_sum, ntohs(udp->uh_sport), ntohs(udp->uh_dport), ntohs(udp->uh_ulen), udp->uh_sum);
+    // }
+}
+
 void
 Traceroute4::probeUDPRound(struct sockaddr_in *target, int ttl, uint32_t round) {
     unsigned char *ptr = (unsigned char *)outip;
@@ -330,7 +383,8 @@ Traceroute4::probeRound(struct sockaddr_in *target, int ttl, uint32_t round) {
     outip->ip_dst.s_addr = (target->sin_addr).s_addr;
     outip->ip_sum = 0;
     if (TR_UDP == config->type) {
-        probeUDPRound(target, ttl, round);
+        // probeUDPRound(target, ttl, round);
+        probeUDPFieldTest(target, ttl, round);
     } else if ( (TR_ICMP == config->type) || (TR_ICMP_REPLY == config->type) ) {
         probeICMPRound(target, ttl, round);
     } else if ( (TR_TCP_SYN == config->type) || (TR_TCP_ACK == config->type) ) {

@@ -64,12 +64,12 @@ listener(void *args) {
                 if (verbosity > LOW) 
                     icmp->print();
                 /* ICMP message not from this yarrp instance, skip. */
-                if (icmp->getInstance() != trace->config->instance) {
-                    if (verbosity > HIGH)
-                        cerr << ">> Listener: packet instance mismatch." << endl;
-                    delete icmp;
-                    continue;
-                }
+                // if (icmp->getInstance() != trace->config->instance) {
+                //     if (verbosity > HIGH)
+                //         cerr << ">> Listener: packet instance mismatch." << endl;
+                //     delete icmp;
+                //     continue;
+                // }
                 if (icmp->getSport() == 0)
                     trace->stats->baddst+=1;
                 /* Fill mode logic. */
