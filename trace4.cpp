@@ -196,7 +196,7 @@ Traceroute4::probeUDPFieldTest(struct sockaddr_in *target, int ttl, uint32_t rou
         cout << ttl << endl;
     } 
     // else {
-        // printf("ip_id:%u ; ip_sum:%u ; uh_sport:%u ; uh_dport:%u ; uh_ulen:%u ; uh_cksum:%u ;\n", outip->ip_id, outip->ip_sum, ntohs(udp->uh_sport), ntohs(udp->uh_dport), ntohs(udp->uh_ulen), udp->uh_sum);
+    //     printf("ip_id:%u ; ip_sum:%u ; uh_sport:%u ; uh_dport:%u ; uh_ulen:%u ; uh_cksum:%u ;\n", outip->ip_id, outip->ip_sum, ntohs(udp->uh_sport), ntohs(udp->uh_dport), ntohs(udp->uh_ulen), udp->uh_sum);
     // }
 }
 

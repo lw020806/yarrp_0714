@@ -51,6 +51,7 @@ class ICMP {
     uint16_t recv_id{0};
     uint16_t recv_seq{0};
     uint16_t recv_cksum{0};
+    uint16_t inner_ipid{0};
     uint16_t uh_cksum{0};
 };
 

@@ -4,10 +4,10 @@ do
 	targetIP="${path}/targets/20x200/${i}_200.ips"
 	outputFile="${path}/shanghai/20x200/${i}_output.yrps"
 
-	minttl=#6
-	maxttl=#25
-	rate=#4000
+	minttl=6
+	maxttl=25
+	rate=4000
 
 	sudo ./yarrp -o ${outputFile}  -t UDP -r ${rate} -i ${targetIP}  -l ${minttl}  -m ${maxttl} -C
-	sleep 1m
+	sleep 20s
 done

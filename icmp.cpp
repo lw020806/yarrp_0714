@@ -184,6 +184,7 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
 #endif
         // ttl = (ntohs(quote->ip_id)) & 0xFF;
         // instance = (ntohs(quote->ip_id) >> 8) & 0xFF;
+        inner_ipid = quote->ip_id;
         recv_id = icmp->icmp_id;
         recv_seq = icmp->icmp_seq;
         recv_cksum = icmp->icmp_cksum;
@@ -206,7 +207,7 @@ ICMP4::ICMP4(struct ip *ip, struct icmp *icmp, uint32_t elapsed, bool _coarse): 
             round = lb_id;
             sport = ntohs(udp->uh_sport);
             dport = ntohs(udp->uh_dport);
-            recv_cksum = udp->uh_sum;
+            uh_cksum = udp->uh_sum;
 
             rtt = 0;
         } 
@@ -479,10 +480,10 @@ void ICMP::write(FILE ** out, uint32_t count, char *src, char *target) {
         return;
     fprintf(*out, "%s %lu %ld %d %d ",
         target, tv.tv_sec, (long) tv.tv_usec, type, code);
-    fprintf(*out, "%u %u %u %u %u %u %u %u", 
+    fprintf(*out, "%u %u %u %u %u %u %u %u ", 
         recv_id, recv_seq, recv_cksum, sport, dport, uh_cksum, round, lb_id);
     fprintf(*out, "%d %s %d %u ",
-        ttl, src, rtt, ipid);
+        ttl, src, rtt, inner_ipid);
     fprintf(*out, "%d %d %d %d ",
         probesize, replysize, replyttl, replytos);
     fprintf(*out, "%s ", getMPLS());
